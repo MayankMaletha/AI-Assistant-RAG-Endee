@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Research Assistant</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: white;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #38bdf8;
+}
+
+.card {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    margin-top: 10px;
+}
+
+button {
+    margin-top: 15px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    background: #38bdf8;
+    color: black;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #0ea5e9;
+}
+
+#answer {
+    white-space: pre-wrap;
+    margin-top: 10px;
+}
+
+.loader {
+    display: none;
+    margin-top: 10px;
+    color: #facc15;
+}
+
+.success { color: #22c55e; }
+.error { color: #ef4444; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>AI Research Assistant</h1>
+
+    <div class="card">
+        <h3>Upload Research PDF</h3>
+        <input type="file" id="pdfFile" accept="application/pdf">
+        <button onclick="uploadPDF()">Upload</button>
+        <div id="uploadStatus"></div>
+    </div>
+
+    <div class="card">
+        <h3>Ask a Question</h3>
+        <input type="text" id="question" placeholder="Enter your question...">
+        <button onclick="askQuestion()">Ask</button>
+        <div class="loader" id="loading">Generating answer...</div>
+        <div id="answer"></div>
+    </div>
+</div>
+
+<script>
+const backendURL = "http://127.0.0.1:8000";
+
+async function uploadPDF() {
+    const fileInput = document.getElementById("pdfFile");
+    const status = document.getElementById("uploadStatus");
+
+    if (!fileInput.files.length) {
+        status.innerHTML = "<span class='error'>Please select a PDF file.</span>";
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    status.innerHTML = "Uploading...";
+
+    try {
+        const response = await fetch(`${backendURL}/upload`, {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            status.innerHTML = `<span class='error'>${data.error}</span>`;
+        } else {
+            status.innerHTML = `<span class='success'>${data.message}</span>`;
+        }
+
+    } catch (error) {
+        status.innerHTML = "<span class='error'>Upload failed.</span>";
+    }
+}
+
+async function askQuestion() {
+    const question = document.getElementById("question").value;
+    const answerDiv = document.getElementById("answer");
+    const loader = document.getElementById("loading");
+
+    if (!question.trim()) {
+        alert("Please enter a question.");
+        return;
+    }
+
+    loader.style.display = "block";
+    answerDiv.innerHTML = "";
+
+    try {
+        const response = await fetch(`${backendURL}/ask`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                question: question
+            })
+        });
+
+        const data = await response.json();
+
+        answerDiv.innerHTML = data.answer;
+
+    } catch (error) {
+        answerDiv.innerHTML = "<span class='error'>Failed to get answer.</span>";
+    }
+
+    loader.style.display = "none";
+}
+</script>
+
+</body>
+</html>
